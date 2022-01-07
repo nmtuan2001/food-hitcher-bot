@@ -7,6 +7,9 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
 from googlemaps import Client as GoogleMaps
 import os
 
+from db import DBHelper
+db = DBHelper()
+
 load_dotenv(encoding='utf16')
 
 TOKEN = os.getenv("TOKEN")
@@ -108,7 +111,10 @@ def confirmation(update, context):
             text="<b>Food is Available!</b> Check the details below: \n {}".format(facts_to_str(user_data)) +
         "\n For more information, message the poster {}".format(user.name), parse_mode=telegram.ParseMode.HTML)
     """
-
+############## NEW ITEM ##################################################################################################
+    db.add_item(user_data['Location'], user_data['Restaurant'], user_data['Number of People'], user_data['Cutoff Time']) #
+##########################################################################################################################
+    
     geocode_result = gmaps.geocode(user_data['Location'])
     lat = geocode_result[0]['geometry']['location'] ['lat']
     lng = geocode_result[0]['geometry']['location']['lng']
@@ -134,6 +140,11 @@ def main():
     # Create the Updater and pass it your bot's token.
     # Make sure to set use_context=True to use the new context based callbacks
     # Post version 12 this will no longer be necessary
+
+### New Item ##
+    db.setup()#
+###############
+    
     updater = Updater(TOKEN, use_context=True)
 
     # Get the dispatcher to register handlers
