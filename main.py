@@ -68,7 +68,7 @@ def lists(update, context):
     lat = geocode_result[0]['geometry']['location']['lat']
     lng = geocode_result[0]['geometry']['location']['lng']
 
-    places = ''
+    places = 'These are the orders that are closest to you. \n'
     closest = db.closest_items(lat, lng)
 
     for dist, user_id, username, location, lng, lat, restaurant, time, curr, full in closest:
