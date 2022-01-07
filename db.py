@@ -1,5 +1,4 @@
 import sqlite3
-import math
 import geopy.distance
 
 class DBHelper:
@@ -8,7 +7,7 @@ class DBHelper:
         self.conn = sqlite3.connect(dbname, check_same_thread=False)
 
     def setup(self):
-        stmt = "CREATE TABLE IF NOT EXISTS orders (user_id int(64), tele_handle text, location text, lat int(32), lng int(32), restaurant text, time time(0), curr_cap INT(8), capacity INT(8))"
+        stmt = "CREATE TABLE IF NOT EXISTS orders (user_id int(64), tele_handle text, location text, lat int(32), lng int(32), restaurant text, time time(0), curr_cap INT(8), capacity INT(8), PRIMARY KEY(user_id))"
         self.conn.execute(stmt)
         self.conn.commit()
 
@@ -17,7 +16,6 @@ class DBHelper:
         args = (user_id, tele_handle, location, lat, lng, restaurant, time, curr_cap, capacity)
         self.conn.execute(stmt, args)
         self.conn.commit()
-        
     
     def delete_item(self, user_id):
         stmt = "DELETE FROM orders WHERE user_id = (?)"
@@ -28,6 +26,11 @@ class DBHelper:
     def get_items(self):
         stmt = "SELECT location, restaurant, time, capacity FROM items"
         return [x[0] for x in self.conn.execute(stmt)]
+
+    def search_user(self, user_id):
+        stmt = "SELECT EXISTS(SELECT 1 FROM orders WHERE user_id=(?))"
+        args = (user_id, )
+        return self.conn.execute(stmt, args).fetchone()
 
     def distance(lat1, lng1, lat2, lng2):
         coord1 = (lat1, lng1)

@@ -58,13 +58,7 @@ def join(update, context): # if join order, list out the nearby orders
     return LISTS
 
 def lists(update, context):
-    user_data = context.user_data
-    user = update.message.from_user
-    category = 'Your Location'
-    text = update.message.text
-    user_data[category] = text
-
-    geocode_result = gmaps.geocode(user_data['Your Location'])
+    geocode_result = gmaps.geocode(update.message.text)
     lat = geocode_result[0]['geometry']['location']['lat']
     lng = geocode_result[0]['geometry']['location']['lng']
 
@@ -143,20 +137,20 @@ def confirmation(update, context): # -> END
     user_data = context.user_data
     user = update.message.from_user
     
-
-    update.message.reply_text("Thank you!", reply_markup=ReplyKeyboardRemove())
-
     geocode_result = gmaps.geocode(user_data['Location'])
-    lat = geocode_result[0]['geometry']['location']['lat']
-    lng = geocode_result[0]['geometry']['location']['lng']
 
-    print(lat)
-    print(lng)
+    if len(geocode_result) == 0:
+        update.message.reply_text("Location not found. Please try again.", reply_markup=ReplyKeyboardRemove())
+    elif db.search_user(user['id']):
+        update.message.reply_text("ERROR. You have already started an order.", reply_markup=ReplyKeyboardRemove())
+    else:
+        lat = geocode_result[0]['geometry']['location']['lat']
+        lng = geocode_result[0]['geometry']['location']['lng']
     
-    db.add_item(user['id'], user['username'], user_data['Location'], lat, lng, user_data['Restaurant'], user_data['Number of People'], 1, user_data['Cutoff Time'])
-
-    bot.send_location(chat_id=update.message.chat.id, latitude=lat, longitude=lng)
-
+        db.add_item(user['id'], user['username'], user_data['Location'], lat, lng, user_data['Restaurant'], user_data['Number of People'], 1, user_data['Cutoff Time'])
+        bot.send_location(chat_id=update.message.chat.id, latitude=lat, longitude=lng)
+        update.message.reply_text("Thank you!", reply_markup=ReplyKeyboardRemove())
+        
     return ConversationHandler.END
 
 def cancel(update, context):
@@ -187,7 +181,6 @@ def main():
     # Create order states = /start -> ORDER -> LOCATION -> RESTAURANT -> CAPACITY -> TIME -> CONFIRMATION
     # Join order states = /start -> LIST -> DETAILS -> CONFIRMATION 
 
-    # Add conversation handler with the states GENDER, PHOTO, LOCATION and BIO
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
 
