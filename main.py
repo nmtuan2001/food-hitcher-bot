@@ -1,7 +1,8 @@
 from dotenv import load_dotenv
+import os
 import logging
 import telegram
-from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           ConversationHandler)
 from googlemaps import Client as GoogleMaps
@@ -21,10 +22,14 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-LOCATION, RESTAURANT, CAPACITY, TIME, CONFIRMATION = range(5)
+# Create order states = /start ->  ORDER -> LOCATION -> RESTAURANT -> CAPACITY -> TIME -> CONFIRMATION (A)
+# Join order states = /start -> LIST -> DETAILS -> CONFIRMATION (B)
 
-reply_keyboard = [['Confirm', 'Restart']]
-markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+# Create order states
+START, JOIN, ORDER, LOCATION, RESTAURANT, CAPACITY, TIME, CONFIRMATION = range(8)
+
+# Find order state
+
 bot = telegram.Bot(token=TOKEN)
 gmaps = GoogleMaps(GMAPSAPI)
 
@@ -40,13 +45,27 @@ def facts_to_str(user, user_data):
 
 
 def start(update, context):
+    new_keyboard = [['Create new order', 'Join other orders']]
+    new_markup = ReplyKeyboardMarkup(new_keyboard, resize_keyboard=True, one_time_keyboard=True)
     update.message.reply_text(
-        "Hi! I am your food hitching assistant to help you find others to order food with. "
-        "To start, please type the location you would like to deliver to.")
+        "Hi! I am your food hitching assistant to help you find others to order food with. ", reply_markup=new_markup)
+    return JOIN
+
+    # Todo -> Do if-else -> if create order, return ORDER; if join order, return LIST
+
+def join(update, context): # if join order, list out the nearby orders
+    user_data = context.user_data
+    user = update.message.from_user
+    update.message.reply_text("Thank you!", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text('You have succeeded in solving the bug!')
+    return ConversationHandler.END
+
+def order(update, context): # -> LOCATION
+    update.message.reply_text('You can create your own order. To start, please type the location you would like to deliver to.')
+
     return LOCATION
 
-
-def location(update, context):
+def location(update, context): # -> RESTAURANT
     user = update.message.from_user
     user_data = context.user_data
     category = 'Location'
@@ -57,7 +76,7 @@ def location(update, context):
     update.message.reply_text('What is the restaurant you are ordering from?')
     return RESTAURANT
 
-def restaurant(update, context):
+def restaurant(update, context): # -> CAPACITY
     user = update.message.from_user
     user_data = context.user_data
     category = 'Restaurant'
@@ -68,7 +87,7 @@ def restaurant(update, context):
 
     return CAPACITY
 
-def capacity(update, context):
+def capacity(update, context): # -> TIME
     user = update.message.from_user
     user_data = context.user_data
     category = 'Number of People'
@@ -79,38 +98,26 @@ def capacity(update, context):
 
     return TIME
     
-def time(update, context):
-	user = update.message.from_user
-	user_data = context.user_data
-	category = 'Cutoff Time'
-	text = update.message.text
-	user_data[category] = text
-	logger.info("Time to join the order by: %s", update.message.text)
-	update.message.reply_text("Thank you for ordering with us! Please check the information is correct:"
-								"{}".format(facts_to_str(user, user_data)), reply_markup=markup)
+def time(update, context): # -> CONFIRMATION
+    reply_keyboard = [['Confirm', 'Restart']]
+    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+    user = update.message.from_user
+    user_data = context.user_data
+    category = 'Cutoff Time'
+    text = update.message.text
+    user_data[category] = text
+    logger.info("Time to join the order by: %s", update.message.text)
+    update.message.reply_text("Thank you for ordering with us! Please check the information is correct:"
+                                "{}".format(facts_to_str(user, user_data)), reply_markup=markup)
 
-	return CONFIRMATION
+    return CONFIRMATION
 
-def confirmation(update, context):
+def confirmation(update, context): # -> END
     user_data = context.user_data
     user = update.message.from_user
+    
 
     update.message.reply_text("Thank you!", reply_markup=ReplyKeyboardRemove())
-
-    """
-    update.message.reply_text("Thank you! I will post the information on the channel @" + chat_id + "  now.", reply_markup=ReplyKeyboardRemove())
-    if (user_data['Photo Provided'] == 'Yes'):
-        del user_data['Photo Provided']
-        bot.send_photo(chat_id=chat_id, photo=open('user_photo.jpg', 'rb'), 
-		caption="<b>Food is Available!</b> Check the details below: \n {}".format(facts_to_str(user_data)) +
-		"\n For more information, message the poster {}".format(user.name), parse_mode=telegram.ParseMode.HTML)
-    else:
-        del user_data['Photo Provided']
-        bot.sendMessage(chat_id=chat_id, 
-            text="<b>Food is Available!</b> Check the details below: \n {}".format(facts_to_str(user_data)) +
-        "\n For more information, message the poster {}".format(user.name), parse_mode=telegram.ParseMode.HTML)
-    """
-    print("do")
 
     geocode_result = gmaps.geocode(user_data['Location'])
     lat = geocode_result[0]['geometry']['location']['lat']
@@ -130,7 +137,6 @@ def cancel(update, context):
 
     return ConversationHandler.END
 
-
 def error(update, context):
     """Log errors caused by updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
@@ -141,20 +147,29 @@ def main():
     # Make sure to set use_context=True to use the new context based callbacks
     # Post version 12 this will no longer be necessary
 
-### New Item ##
-    db.setup()#
-###############
+    db.setup()
     
     updater = Updater(TOKEN, use_context=True)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
+    # Create order states = /start -> ORDER -> LOCATION -> RESTAURANT -> CAPACITY -> TIME -> CONFIRMATION
+    # Join order states = /start -> LIST -> DETAILS -> CONFIRMATION 
+
     # Add conversation handler with the states GENDER, PHOTO, LOCATION and BIO
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
 
         states={
+            START: [CommandHandler('start', start), MessageHandler(Filters.text, start)],
+
+            JOIN: [MessageHandler(Filters.regex('^Join other orders$'), join),
+                                      MessageHandler(Filters.regex('^Create new order$'),
+                                      order)
+            ],
+
+            ORDER: [CommandHandler('start', start), MessageHandler(Filters.text, order)],
 
             LOCATION: [CommandHandler('start', start), MessageHandler(Filters.text, location)],
 
