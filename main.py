@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Join order states = /start -> LIST -> DETAILS -> CONFIRMATION (B)
 
 # Create order states
-START, JOIN, ORDER, LOCATION, RESTAURANT, CAPACITY, TIME, CONFIRMATION = range(8)
+START, JOIN, ORDER, LOCATION, RESTAURANT, CAPACITY, TIME, CONFIRMATION, LISTS = range(9)
 
 # Find order state
 
@@ -56,9 +56,47 @@ def start(update, context):
 def join(update, context): # if join order, list out the nearby orders
     user_data = context.user_data
     user = update.message.from_user
-    update.message.reply_text("Thank you!", reply_markup=ReplyKeyboardRemove())
-    update.message.reply_text('You have succeeded in solving the bug!')
+    category = 'Your Location'
+    text = update.message.text
+    user_data[category] = text
+#   logger.info("Location of %s: %s", user.first_name, update.message.text)
+    update.message.reply_text("Can you give us your location?", reply_markup=ReplyKeyboardRemove())
+
+    return LISTS
+
+def lists(update, context):
+    user_data = context.user_data
+    user = update.message.from_user
+
+    geocode_result = gmaps.geocode(user_data['Your Location'])
+    lat = geocode_result[0]['geometry']['location']['lat']
+    lng = geocode_result[0]['geometry']['location']['lng']
+
+    places = ''
+    closest = db.closest_items(lng, lat)
+
+    for dist, user_id, username, location, lng, lat, restaurant, time, curr, full in closest:
+        facts = list()
+        facts.append('{} - {}'.format("Telegram Handle", "@" + str(username)))
+        facts.append('{} - {}'.format("Location ", location))
+        facts.append('{} - {}'.format("Restaurant ", str(restaurant)))
+        facts.append('{} - {}'.format("Time ", time))
+        facts.append('{} - {}'.format("Distance ", str(dist) + " km"))
+
+        places += "\n".join(facts).join(['\n', '\n'])
+        places += "\n"
+
+    update.message.reply_text(places)
+
+
+        
+    
+
+
+
+
     return ConversationHandler.END
+
 
 def order(update, context): # -> LOCATION
     update.message.reply_text('You can create your own order. To start, please type the location you would like to deliver to.')
@@ -183,7 +221,8 @@ def main():
                                       confirmation),
             MessageHandler(Filters.regex('^Restart$'),
                                       start)
-                       ]
+                       ],
+            LISTS: [CommandHandler('start', start), MessageHandler(Filters.text, lists)]
 
         },
 
