@@ -54,23 +54,27 @@ def start(update, context):
     # Todo -> Do if-else -> if create order, return ORDER; if join order, return LIST
 
 def join(update, context): # if join order, list out the nearby orders
-    user_data = context.user_data
-    user = update.message.from_user
-    category = 'Your Location'
-    text = update.message.text
-    user_data[category] = text
-#   logger.info("Location of %s: %s", user.first_name, update.message.text)
     update.message.reply_text("Can you give us your location?", reply_markup=ReplyKeyboardRemove())
+    
+#   logger.info("Location of %s: %s", user.first_name, update.message.text)
+    
 
     return LISTS
 
 def lists(update, context):
     user_data = context.user_data
     user = update.message.from_user
+    category = 'Your Location'
+    text = update.message.text
+    user_data[category] = text
+    print(user_data['Your Location'])
 
     geocode_result = gmaps.geocode(user_data['Your Location'])
     lat = geocode_result[0]['geometry']['location']['lat']
     lng = geocode_result[0]['geometry']['location']['lng']
+
+    print(lat)
+    print(lng)
 
     places = ''
     closest = db.closest_items(lng, lat)
@@ -81,7 +85,7 @@ def lists(update, context):
         facts.append('{} - {}'.format("Location ", location))
         facts.append('{} - {}'.format("Restaurant ", str(restaurant)))
         facts.append('{} - {}'.format("Time ", time))
-        facts.append('{} - {}'.format("Distance ", str(dist) + " km"))
+        facts.append('{} - {}'.format("Distance ", "{:.2f}".format(dist) + " km"))
 
         places += "\n".join(facts).join(['\n', '\n'])
         places += "\n"
@@ -160,6 +164,9 @@ def confirmation(update, context): # -> END
     geocode_result = gmaps.geocode(user_data['Location'])
     lat = geocode_result[0]['geometry']['location']['lat']
     lng = geocode_result[0]['geometry']['location']['lng']
+
+    print(lat)
+    print(lng)
     
     db.add_item(user['id'], user['username'], user_data['Location'], lat, lng, user_data['Restaurant'], user_data['Number of People'], 1, user_data['Cutoff Time'])
 
