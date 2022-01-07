@@ -1,7 +1,10 @@
 from dotenv import load_dotenv
+import os
 import logging
 import telegram
-from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
+# import telebot
+# from telebot.types import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           ConversationHandler)
 from googlemaps import Client as GoogleMaps
@@ -25,7 +28,7 @@ logger = logging.getLogger(__name__)
 # Join order states = /start -> LIST -> DETAILS -> CONFIRMATION (B)
 
 # Create order states
-START, ORDER, LOCATION, RESTAURANT, CAPACITY, TIME, CONFIRMATION, LISTS = range(8)
+START, PROCESS, ORDER, LOCATION, RESTAURANT, CAPACITY, TIME, CONFIRMATION, LISTS = range(9)
 
 # Find order state
 
@@ -49,23 +52,32 @@ def facts_to_str(user_data):
 
 
 def start(update, context):
-    reply_keyboard = [['Create new order', 'Join other orders']]
-    markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+    new_keyboard = [['Create new order', 'Join other orders']]
+    new_markup = ReplyKeyboardMarkup(new_keyboard, resize_keyboard=True, one_time_keyboard=True)
     update.message.reply_text(
-        "Hi! I am your food hitching assistant to help you find others to order food with. ", reply_markup=markup)
+        "Hi! I am your food hitching assistant to help you find others to order food with. ", reply_markup=new_markup)
+    return LISTS
 
     # Todo -> Do if-else -> if create order, return ORDER; if join order, return LIST
-    
-    return ORDER # if create order
-
+'''
+def process(update, context):
+    user_data = context.user_data
+    user = update.message.from_user
+    update.message.reply_text("Thank you!", reply_markup=ReplyKeyboardRemove())
+'''
 def db_list(update, context): # if join order, list out the nearby orders
-    update.message.reply_text('This lists out the other lists')
-    return
+    user_data = context.user_data
+    user = update.message.from_user
+    update.message.reply_text("Thank you!", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text('You have succeeded in solving the bug!')
+    return ConversationHandler.END
 
 
 
 def order_menu(update, context): # -> LOCATION
     update.message.reply_text('You can create your own order. To start, please type the location you would like to deliver to.')
+
+    return LOCATION
 
 def location(update, context): # -> RESTAURANT
     user = update.message.from_user
@@ -181,11 +193,18 @@ def main():
         entry_points=[CommandHandler('start', start)],
 
         states={
-            START: [MessageHandler(Filters.regex('^Create new order$'),
+            START: [CommandHandler('start', start), MessageHandler(Filters.text, start)],
+
+            PROCESS: [MessageHandler(Filters.regex('^Create new order$'),
                                       order_menu),
             MessageHandler(Filters.regex('^Join other orders$'),
                                       db_list)],
-            LISTS: [CommandHandler('start', start), MessageHandler(Filters.text, db_list)],
+                                      
+
+            LISTS: [MessageHandler(Filters.regex('^Join other orders$'), db_list),
+                                      MessageHandler(Filters.regex('^Create new order$'),
+                                      order_menu)
+            ],
 
             ORDER: [CommandHandler('start', start), MessageHandler(Filters.text, order_menu)],
 
