@@ -42,9 +42,9 @@ gmaps = GoogleMaps(GMAPSAPI)
 
 PORT = int(os.environ.get('PORT', 5000))
 
-def facts_to_str(user_data):
+def facts_to_str(user, user_data):
     facts = list()
-
+    facts.append('{} - {}'.format("Telegram Handle", "@" + str(user['username'])))
     for key, value in user_data.items():
         facts.append('{} - {}'.format(key, value))
 
@@ -146,13 +146,14 @@ def confirmation(update, context): # -> END
             text="<b>Food is Available!</b> Check the details below: \n {}".format(facts_to_str(user_data)) +
         "\n For more information, message the poster {}".format(user.name), parse_mode=telegram.ParseMode.HTML)
     """
-############## NEW ITEM ##################################################################################################
-    db.add_item(user_data['Location'], user_data['Restaurant'], user_data['Number of People'], user_data['Cutoff Time']) #
-##########################################################################################################################
-    
+    print("do")
+
     geocode_result = gmaps.geocode(user_data['Location'])
-    lat = geocode_result[0]['geometry']['location'] ['lat']
+    lat = geocode_result[0]['geometry']['location']['lat']
     lng = geocode_result[0]['geometry']['location']['lng']
+    
+    db.add_item(user['id'], user['username'], user_data['Location'], lat, lng, user_data['Restaurant'], user_data['Number of People'], 1, user_data['Cutoff Time'])
+
     bot.send_location(chat_id=update.message.chat.id, latitude=lat, longitude=lng)
 
     return ConversationHandler.END
@@ -240,8 +241,7 @@ def main():
     # start_polling() is non-blocking and will stop the bot gracefully.
     #updater.idle()
     updater.start_polling()
-
-
+    updater.idle()
 
 if __name__ == '__main__':
     main()
