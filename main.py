@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Join order states = /start -> LIST -> DETAILS -> CONFIRMATION (B)
 
 # Create order states
-START, JOIN, ORDER, LOCATION, RESTAURANT, CAPACITY, TIME, CONFIRMATION, LISTS = range(9)
+START, JOIN, ORDER, LOCATION, RESTAURANT, CAPACITY, TIME, CONFIRMATION, LISTS, COMPLETE, DELETE = range(11)
 
 # Find order state
 
@@ -58,7 +58,13 @@ def join(update, context): # if join order, list out the nearby orders
     return LISTS
 
 def lists(update, context):
-    geocode_result = gmaps.geocode(update.message.text)
+    user_data = context.user_data
+    user = update.message.from_user
+    category = 'Your Location'
+    text = update.message.text
+    user_data[category] = text
+
+    geocode_result = gmaps.geocode(user_data['Your Location'])
     lat = geocode_result[0]['geometry']['location']['lat']
     lng = geocode_result[0]['geometry']['location']['lng']
 
@@ -151,6 +157,25 @@ def confirmation(update, context): # -> END
         bot.send_location(chat_id=update.message.chat.id, latitude=lat, longitude=lng)
         update.message.reply_text("Thank you!", reply_markup=ReplyKeyboardRemove())
         
+        final_keyboard = [['Order Completed', 'Delete Order']]
+        final_markup = ReplyKeyboardMarkup(final_keyboard, resize_keyboard=True, one_time_keyboard=True)
+        update.message.reply_text(
+            "Please update us when the order has been completed. If needed you can delete your order as well. ", reply_markup=final_markup)
+
+        return COMPLETE
+
+def complete(update, context):
+    user_data = context.user_data
+    user = update.message.from_user
+    db.delete_item(user['id'])
+    update.message.reply_text("Thank you! Hope you have a good meal! :)", reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
+def delete(update, context):
+    user_data = context.user_data
+    user = update.message.from_user
+    db.delete_item(user['id'])
+    update.message.reply_text("Click start if you wish to restart the order. ", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 def cancel(update, context):
@@ -181,6 +206,7 @@ def main():
     # Create order states = /start -> ORDER -> LOCATION -> RESTAURANT -> CAPACITY -> TIME -> CONFIRMATION
     # Join order states = /start -> LIST -> DETAILS -> CONFIRMATION 
 
+    # Add conversation handler with the states GENDER, PHOTO, LOCATION and BIO
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
 
@@ -207,6 +233,15 @@ def main():
             MessageHandler(Filters.regex('^Restart$'),
                                       start)
                        ],
+
+            COMPLETE:[MessageHandler(Filters.regex('^Order Completed$'),
+                                      complete),
+            MessageHandler(Filters.regex('^Delete Order$'),
+                                      delete)
+                       ],
+
+            DELETE: [CommandHandler('start', start), MessageHandler(Filters.text, delete)],
+            
             LISTS: [CommandHandler('start', start), MessageHandler(Filters.text, lists)]
 
         },
