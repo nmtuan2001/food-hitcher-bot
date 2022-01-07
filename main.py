@@ -26,7 +26,6 @@ LOCATION, RESTAURANT, CAPACITY, TIME, CONFIRMATION = range(5)
 reply_keyboard = [['Confirm', 'Restart']]
 markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
 bot = telegram.Bot(token=TOKEN)
-#chat_id = 'YOURTELEGRAMCHANNEL'
 gmaps = GoogleMaps(GMAPSAPI)
 
 PORT = int(os.environ.get('PORT', 5000))
@@ -122,7 +121,7 @@ def confirmation(update, context):
 
 def cancel(update, context):
     user = update.message.from_user
-    logger.info("User %s canceled the conversation.", user.first_name)
+    logger.info("User %s cancelled the conversation.", user.first_name)
     update.message.reply_text('Bye! Hope to see you again next time.',
                               reply_markup=ReplyKeyboardRemove())
 
