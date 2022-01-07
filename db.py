@@ -1,5 +1,6 @@
 import sqlite3
 import math
+import geopy.distance
 
 class DBHelper:
     def __init__(self, dbname="order.sqlite"):
@@ -24,23 +25,20 @@ class DBHelper:
         self.conn.execute(stmt, args)
         self.conn.commit()
     
-
     def get_items(self):
         stmt = "SELECT location, restaurant, time, capacity FROM items"
         return [x[0] for x in self.conn.execute(stmt)]
 
-    def distance(lng1, lat1, lng2, lat2):
-        r = 6371
-        p = math.pi/180
-        a = 0.5 - math.cos((lat2 - lat1) * p)/2 + math.cos(lat1*p)*math.cos(lat2*p) * (1-math.cos((lng2-lng1)*p))/2
-        d = 2*r*math.asin(math.sqrt(a))
-        return d
+    def distance(lat1, lng1, lat2, lng2):
+        coord1 = (lat1, lng1)
+        coord2 = (lat2, lng2)
+        return geopy.distance.distance(coord1, coord2).km
     
-    def closest_items(self, lng, lat):
+    def closest_items(self, lat, lng):
         stmt = "SELECT * FROM orders"
         closest = []
         for order in [x for x in self.conn.execute(stmt)]:
-            distance_from = DBHelper.distance(lng, lat, order[4], order[3])
+            distance_from = DBHelper.distance(lat, lng, order[3], order[4])
             new_order = []
             new_order.append(distance_from)
             new_order = new_order + list(order)

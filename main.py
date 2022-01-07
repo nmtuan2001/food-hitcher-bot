@@ -54,11 +54,7 @@ def start(update, context):
     # Todo -> Do if-else -> if create order, return ORDER; if join order, return LIST
 
 def join(update, context): # if join order, list out the nearby orders
-    update.message.reply_text("Can you give us your location?", reply_markup=ReplyKeyboardRemove())
-    
-#   logger.info("Location of %s: %s", user.first_name, update.message.text)
-    
-
+    update.message.reply_text("Can you give us your location?", reply_markup=ReplyKeyboardRemove())    
     return LISTS
 
 def lists(update, context):
@@ -67,17 +63,13 @@ def lists(update, context):
     category = 'Your Location'
     text = update.message.text
     user_data[category] = text
-    print(user_data['Your Location'])
 
     geocode_result = gmaps.geocode(user_data['Your Location'])
     lat = geocode_result[0]['geometry']['location']['lat']
     lng = geocode_result[0]['geometry']['location']['lng']
 
-    print(lat)
-    print(lng)
-
     places = ''
-    closest = db.closest_items(lng, lat)
+    closest = db.closest_items(lat, lng)
 
     for dist, user_id, username, location, lng, lat, restaurant, time, curr, full in closest:
         facts = list()
@@ -91,13 +83,6 @@ def lists(update, context):
         places += "\n"
 
     update.message.reply_text(places)
-
-
-        
-    
-
-
-
 
     return ConversationHandler.END
 
