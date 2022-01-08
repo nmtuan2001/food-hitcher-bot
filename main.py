@@ -51,20 +51,13 @@ def start(update, context):
         "Hi! I am your food hitching assistant to help you find others to order food with. ", reply_markup=new_markup)
     return JOIN
 
-    # Todo -> Do if-else -> if create order, return ORDER; if join order, return LIST
 
 def join(update, context): # if join order, list out the nearby orders
     update.message.reply_text("Can you give us your location?", reply_markup=ReplyKeyboardRemove())    
     return LISTS
 
 def lists(update, context):
-    user_data = context.user_data
-    user = update.message.from_user
-    category = 'Your Location'
-    text = update.message.text
-    user_data[category] = text
-
-    geocode_result = gmaps.geocode(user_data['Your Location'])
+    geocode_result = gmaps.geocode(update.message.text)
     lat = geocode_result[0]['geometry']['location']['lat']
     lng = geocode_result[0]['geometry']['location']['lng']
 
@@ -160,7 +153,7 @@ def confirmation(update, context): # -> END
         final_keyboard = [['Order Completed', 'Delete Order']]
         final_markup = ReplyKeyboardMarkup(final_keyboard, resize_keyboard=True, one_time_keyboard=True)
         update.message.reply_text(
-            "Please update us when the order has been completed. If needed you can delete your order as well. ", reply_markup=final_markup)
+            "Please update us once the food has been ordered. If you decide not to order, please delete your order. ", reply_markup=final_markup)
 
         return COMPLETE
 
