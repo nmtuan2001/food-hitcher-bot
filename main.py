@@ -51,20 +51,13 @@ def start(update, context):
         "Hi! I am your food hitching assistant to help you find others to order food with. ", reply_markup=new_markup)
     return JOIN
 
-    # Todo -> Do if-else -> if create order, return ORDER; if join order, return LIST
 
 def join(update, context): # if join order, list out the nearby orders
     update.message.reply_text("Can you give us your location?", reply_markup=ReplyKeyboardRemove())    
     return LISTS
 
 def lists(update, context):
-    user_data = context.user_data
-    user = update.message.from_user
-    category = 'Your Location'
-    text = update.message.text
-    user_data[category] = text
-
-    geocode_result = gmaps.geocode(user_data['Your Location'])
+    geocode_result = gmaps.geocode(update.message.text)
     lat = geocode_result[0]['geometry']['location']['lat']
     lng = geocode_result[0]['geometry']['location']['lng']
 
@@ -145,22 +138,25 @@ def confirmation(update, context): # -> END
     
     geocode_result = gmaps.geocode(user_data['Location'])
 
+    '''
+    if db.search_user(user['id']):
+        update.message.reply_text("ERROR. You have already started an order.", reply_markup=ReplyKeyboardRemove())
+    '''
+
     if len(geocode_result) == 0:
         update.message.reply_text("Location not found. Please try again.", reply_markup=ReplyKeyboardRemove())
-    elif db.search_user(user['id']):
-        update.message.reply_text("ERROR. You have already started an order.", reply_markup=ReplyKeyboardRemove())
     else:
         lat = geocode_result[0]['geometry']['location']['lat']
         lng = geocode_result[0]['geometry']['location']['lng']
     
-        db.add_item(user['id'], user['username'], user_data['Location'], lat, lng, user_data['Restaurant'], user_data['Number of People'], 1, user_data['Cutoff Time'])
+        db.add_item(user['id'], user['username'], user_data['Location'], lat, lng, user_data['Restaurant'], user_data['Cutoff Time'], 1, user_data['Number of People'])
         bot.send_location(chat_id=update.message.chat.id, latitude=lat, longitude=lng)
         update.message.reply_text("Thank you!", reply_markup=ReplyKeyboardRemove())
         
         final_keyboard = [['Order Completed', 'Delete Order']]
         final_markup = ReplyKeyboardMarkup(final_keyboard, resize_keyboard=True, one_time_keyboard=True)
         update.message.reply_text(
-            "Please update us when the order has been completed. If needed you can delete your order as well. ", reply_markup=final_markup)
+            "Please update us once the food has been ordered. If you decide not to order, please delete your order. ", reply_markup=final_markup)
 
         return COMPLETE
 
