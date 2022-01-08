@@ -138,15 +138,18 @@ def confirmation(update, context): # -> END
     
     geocode_result = gmaps.geocode(user_data['Location'])
 
+    '''
+    if db.search_user(user['id']):
+        update.message.reply_text("ERROR. You have already started an order.", reply_markup=ReplyKeyboardRemove())
+    '''
+
     if len(geocode_result) == 0:
         update.message.reply_text("Location not found. Please try again.", reply_markup=ReplyKeyboardRemove())
-    elif db.search_user(user['id']):
-        update.message.reply_text("ERROR. You have already started an order.", reply_markup=ReplyKeyboardRemove())
     else:
         lat = geocode_result[0]['geometry']['location']['lat']
         lng = geocode_result[0]['geometry']['location']['lng']
     
-        db.add_item(user['id'], user['username'], user_data['Location'], lat, lng, user_data['Restaurant'], user_data['Number of People'], 1, user_data['Cutoff Time'])
+        db.add_item(user['id'], user['username'], user_data['Location'], lat, lng, user_data['Restaurant'], user_data['Cutoff Time'], 1, user_data['Number of People'])
         bot.send_location(chat_id=update.message.chat.id, latitude=lat, longitude=lng)
         update.message.reply_text("Thank you!", reply_markup=ReplyKeyboardRemove())
         
