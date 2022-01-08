@@ -62,7 +62,11 @@ def lists(update, context):
     lng = geocode_result[0]['geometry']['location']['lng']
 
     places = 'These are the orders that are closest to you. \n'
-    closest = db.closest_items(lat, lng)
+    
+    time = update.message.date
+    gmt_time = time.strftime("%H:%M")
+    
+    closest = db.closest_items(lat, lng, gmt_time)
 
     for dist, user_id, username, location, lng, lat, restaurant, time, curr, full in closest:
         facts = list()
@@ -114,7 +118,7 @@ def capacity(update, context): # -> TIME
     text = update.message.text
     user_data[category] = text
     logger.info("Number of people: %s", update.message.text)
-    update.message.reply_text('What time do you want the food to be ordered by? Please input in HH:MM format.')
+    update.message.reply_text('What time do you want the food to be ordered by? Please input in HH:MM format (24 hours).')
 
     return TIME
     
@@ -125,12 +129,16 @@ def time(update, context): # -> CONFIRMATION
     user_data = context.user_data
     category = 'Cutoff Time'
     text = update.message.text
-    user_data[category] = text
-    logger.info("Time to join the order by: %s", update.message.text)
-    update.message.reply_text("Thank you for ordering with us! Please check the information is correct:"
-                                "{}".format(facts_to_str(user, user_data)), reply_markup=markup)
 
-    return CONFIRMATION
+    if len(text) != 5 or text[2] != ":":
+        update.message.reply_text("Please input the time as instructed.")
+        return TIME
+    else:
+        user_data[category] = text
+        logger.info("Time to join the order by: %s", update.message.text)
+        update.message.reply_text("Thank you for ordering with us! Please check the information is correct:"
+                                    "{}".format(facts_to_str(user, user_data)), reply_markup=markup)
+        return CONFIRMATION
 
 def confirmation(update, context): # -> END
     user_data = context.user_data

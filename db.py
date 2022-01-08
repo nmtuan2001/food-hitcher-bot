@@ -15,7 +15,6 @@ class DBHelper:
         stmt = "INSERT INTO orders (user_id, tele_handle, location, lat, lng, restaurant, time, curr_cap, capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
         args = (user_id, tele_handle, location, lat, lng, restaurant, time, curr_cap, capacity)
         self.conn.execute(stmt, args)
-        #self.conn.execute("SELECT strftime('%H:%M', (?)) as time", (time, ))
         self.conn.commit()
     
     def delete_item(self, user_id):
@@ -33,15 +32,42 @@ class DBHelper:
         args = (user_id, )
         return self.conn.execute(stmt, args).fetchone()
 
+    def compare_time(time1, time2):
+        h1 = int(time1[:2]) + 8     #convert to SG time
+        m1 = int(time1[3:])
+        h2 = int(time2[:2])
+        m2 = int(time2[3:])
+        if h1 > h2:
+            return 1
+        elif h1 < h2:
+            return -1
+        elif m1 > m2:
+            return 1
+        elif m1 < m2:
+            return -1
+        else:
+            return 0
+    
+    def time_filter(self, time):
+        stmt = "SELECT * FROM orders"
+        existing_orders = [x for x in self.conn.execute(stmt)]
+        orders = []
+        for order in existing_orders:
+            if (DBHelper.compare_time(time, order[6]) == -1):
+                orders.append(order)
+            else:
+                self.delete_item(order[0])
+        return orders        
+
     def distance(lat1, lng1, lat2, lng2):
         coord1 = (lat1, lng1)
         coord2 = (lat2, lng2)
         return geopy.distance.distance(coord1, coord2).km
     
-    def closest_items(self, lat, lng):
-        stmt = "SELECT * FROM orders"
+    def closest_items(self, lat, lng, time):
+        filtered_orders = self.time_filter(time)
         closest = []
-        for order in [x for x in self.conn.execute(stmt)]:
+        for order in filtered_orders:
             distance_from = DBHelper.distance(lat, lng, order[3], order[4])
             new_order = []
             new_order.append(distance_from)
