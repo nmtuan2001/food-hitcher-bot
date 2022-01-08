@@ -114,7 +114,7 @@ def capacity(update, context): # -> TIME
     text = update.message.text
     user_data[category] = text
     logger.info("Number of people: %s", update.message.text)
-    update.message.reply_text('What time do you want the food to be ordered by?')
+    update.message.reply_text('What time do you want the food to be ordered by? Please input in HH:MM format.')
 
     return TIME
     
@@ -171,7 +171,7 @@ def delete(update, context):
     user_data = context.user_data
     user = update.message.from_user
     db.delete_item(user['id'])
-    update.message.reply_text("Click start if you wish to restart the order. ", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text("Type /start if you wish to restart the order. ", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 def cancel(update, context):

@@ -15,6 +15,7 @@ class DBHelper:
         stmt = "INSERT INTO orders (user_id, tele_handle, location, lat, lng, restaurant, time, curr_cap, capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
         args = (user_id, tele_handle, location, lat, lng, restaurant, time, curr_cap, capacity)
         self.conn.execute(stmt, args)
+        #self.conn.execute("SELECT strftime('%H:%M', (?)) as time", (time, ))
         self.conn.commit()
     
     def delete_item(self, user_id):
