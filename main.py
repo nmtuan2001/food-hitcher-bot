@@ -79,6 +79,7 @@ def lists(update, context):
         places += "\n".join(facts).join(['\n', '\n'])
         places += "\n"
 
+    places += "Please contact the person you would like to order with using the handles shown above. Thank you and have a nice meal!"
     update.message.reply_text(places)
 
     return ConversationHandler.END
@@ -131,7 +132,7 @@ def time(update, context): # -> CONFIRMATION
     text = update.message.text
 
     if len(text) != 5 or text[2] != ":":
-        update.message.reply_text("Please input the time as instructed.")
+        update.message.reply_text("Please input the time in HH:MM format (24 hours).")
         return TIME
     else:
         user_data[category] = text
@@ -164,7 +165,7 @@ def confirmation(update, context): # -> END
         final_keyboard = [['Order Completed', 'Delete Order']]
         final_markup = ReplyKeyboardMarkup(final_keyboard, resize_keyboard=True, one_time_keyboard=True)
         update.message.reply_text(
-            "Please update us once the food has been ordered. If you decide not to order, please delete your order. ", reply_markup=final_markup)
+            "Please update us once the food has been ordered. If you decide not to order, please delete your order.", reply_markup=final_markup)
 
         return COMPLETE
 
@@ -172,14 +173,14 @@ def complete(update, context):
     user_data = context.user_data
     user = update.message.from_user
     db.delete_item(user['id'])
-    update.message.reply_text("Thank you! Hope you have a good meal! :)", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text("Thank you! Hope you have a good meal!\nType /start if you wish to order again.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 def delete(update, context):
     user_data = context.user_data
     user = update.message.from_user
     db.delete_item(user['id'])
-    update.message.reply_text("Type /start if you wish to restart the order. ", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text("Your order has been deleted.\nType /start if you wish to restart the order. ", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 def cancel(update, context):
